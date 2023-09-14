@@ -23,7 +23,8 @@ cp.scripts.define(async () => {
     }
   `);
 
-  const getNGrams = (str, n) => {
+  const getNGrams = (/** @type {string}*/str, n) => {
+    str = str.toLowerCase();
     const out = [];
     for (let i = 0; i <= str.length - n; i++) {
       let nGram = str.slice(i, i + n);
@@ -31,12 +32,8 @@ cp.scripts.define(async () => {
     }
     return out;
   }
-
-  let n = 4;
-  const nGrams = await (async () => {
-    let nGrams = {};
-    let mapping = await cp.scripts.cacheLoad('./mapping.js');
-    for (let [out, name] of mapping) {
+  function parseNGrams(nGrams, pairs, n) {
+    for (let [out, name] of pairs) {
       for (let m = 1; m <= n; m++) {
         for (let nGram of getNGrams(name, m)) {
           nGrams[nGram] = nGrams[nGram] || [];
@@ -45,7 +42,13 @@ cp.scripts.define(async () => {
       }
     }
     return nGrams;
-  })();
+  }
+
+  let n = 4;
+  const nGrams = {};
+
+  parseNGrams(nGrams, await cp.scripts.cacheLoad('./mapping.js'), n);
+  parseNGrams(nGrams, await cp.scripts.cacheLoad('./emojis.js'), n);
 
   let topResult = null;
   const searchBarSignal = new cp.events.Signal('');
@@ -86,6 +89,7 @@ Carlos Pinzón. 2023.
 
   // let previous = { pattern: '**' };
   async function search(pattern) {
+    pattern = pattern.toLowerCase();
     let out = [];
     for (let m = Math.min(n, pattern.length); m > 0 && out.length == 0; m--) {
       for (let nGram of getNGrams(pattern, m)) {
